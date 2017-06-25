@@ -7,8 +7,13 @@ class Opal
   end
 
   def create_dossier!(projet, agent_instructeur)
-    response = @client.post('/createDossier', body: serialize_dossier(projet, agent_instructeur).to_json)
+    Rails.logger.info "[OPAL] begin dossier creation"
+    body = serialize_dossier(projet, agent_instructeur).to_json
+    Rails.logger.info "[OPAL] dossier serialized"
+    response = @client.post('/createDossier', body: body)
+    Rails.logger.info "[OPAL] response received"
     if response.code != 201
+      Rails.logger.info "[OPAL] invalid response status code"
       message = parse_error_message(response)
       Rails.logger.error "[OPAL] request failed with code '#{response.code}': #{message || response.body}"
       raise OpalError, message
@@ -118,7 +123,8 @@ private
   def parse_error_message(response)
     message = nil
     begin
-      message = JSON.parse(response.body)[0]["message"]
+      body = response.body.force_encoding Encoding::UTF_8
+      message = JSON.parse(body)[0]["message"]
     rescue
     end
     message || "#{response.msg} (#{response.code})"
